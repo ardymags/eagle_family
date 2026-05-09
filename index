@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Input Penghuni Baru</title>
+
+<style>
+
+body{
+  margin:0;
+  font-family:'Segoe UI',sans-serif;
+  background:#eef2f7;
+}
+
+.header{
+  background:linear-gradient(135deg,#007bff,#0056b3);
+  color:white;
+  padding:18px;
+  text-align:center;
+  font-size:22px;
+  font-weight:bold;
+}
+
+.nav{
+  background:white;
+  padding:12px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.05);
+}
+
+.nav a{
+  text-decoration:none;
+  margin-right:12px;
+  color:#007bff;
+  font-weight:bold;
+}
+
+.container{
+  max-width:1000px;
+  margin:auto;
+  padding:20px;
+}
+
+.card{
+  background:white;
+  border-radius:14px;
+  padding:20px;
+  margin-bottom:18px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.06);
+}
+
+.title{
+  font-weight:bold;
+  margin-bottom:12px;
+  color:#007bff;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:12px;
+}
+
+input,select{
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #dcdcdc;
+  width:100%;
+  box-sizing:border-box;
+}
+
+button{
+  border:none;
+  border-radius:10px;
+  padding:12px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.btn-primary{
+  background:#007bff;
+  color:white;
+}
+
+.btn-success{
+  background:#28a745;
+  color:white;
+}
+
+.btn-danger{
+  background:#dc3545;
+  color:white;
+}
+
+.anggota{
+  border:1px solid #ddd;
+  border-radius:12px;
+  padding:15px;
+  margin-top:15px;
+  background:#fafafa;
+}
+
+.loading{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(255,255,255,0.7);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:999;
+}
+
+.spinner{
+  width:45px;
+  height:45px;
+  border:5px solid #ddd;
+  border-top:5px solid #007bff;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+  100%{
+    transform:rotate(360deg);
+  }
+}
+
+.toast{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  padding:14px 18px;
+  border-radius:10px;
+  color:white;
+  display:none;
+  z-index:9999;
+}
+
+.success{
+  background:#28a745;
+}
+
+.error{
+  background:#dc3545;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">
+📋 INPUT DATA PENGHUNI
+</div>
+
+<div class="nav">
+  <a href="dashboard.html">📊 List Kartu Keluarga</a>
+  <a href="warga.html">👥 Data Warga</a>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <div class="title">Data KK</div>
+
+    <div class="grid">
+      <input id="no_kk" placeholder="Nomor KK (16 digit)" maxlength="16">
+
+      <input id="blok" placeholder="Blok">
+
+      <input id="no_rumah" placeholder="Nomor Rumah">
+
+      <select id="status_huni">
+        <option value="">Status Huni</option>
+        <option>huni</option>
+        <option>belum huni</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="title">Alamat</div>
+    <input id="alamat" placeholder="Alamat lengkap">
+  </div>
+
+  <div class="card">
+
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="title">Anggota Keluarga</div>
+
+      <button class="btn-success" onclick="tambahAnggota()">
+        + Tambah Anggota
+      </button>
+    </div>
+
+    <div id="anggotaContainer"></div>
+
+  </div>
+
+  <div class="card">
+    <button class="btn-primary" onclick="submitData()">
+      💾 Simpan Data
+    </button>
+  </div>
+
+</div>
+
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+
+const apiURL = "https://script.google.com/macros/s/AKfycbzUdw6sOc74FdtSFxKOUA1Uu236TXdc_E_eelUaVIct6LErZAkGiY_0wUSchWyCkjYM/exec";
+
+/* =========================
+   TOAST
+========================= */
+
+function showToast(msg,type="success"){
+
+  const toast=document.getElementById("toast");
+
+  toast.innerText=msg;
+  toast.className=`toast ${type}`;
+
+  toast.style.display="block";
+
+  setTimeout(()=>{
+    toast.style.display="none";
+  },2500);
+}
+
+/* =========================
+   LOADING
+========================= */
+
+function showLoading(){
+  document.getElementById("loading").style.display="flex";
+}
+
+function hideLoading(){
+  document.getElementById("loading").style.display="none";
+}
+
+/* =========================
+   INPUT ANGKA
+========================= */
+
+document.getElementById("no_kk").addEventListener("input",e=>{
+  e.target.value=e.target.value.replace(/\D/g,'');
+});
+
+/* =========================
+   TAMBAH ANGGOTA
+========================= */
+
+function tambahAnggota(){
+
+  const div=document.createElement("div");
+
+  div.className="anggota";
+
+  div.innerHTML=`
+
+    <div class="grid">
+
+      <input class="nik" maxlength="16" placeholder="NIK">
+
+      <input class="nama" placeholder="Nama">
+
+      <select class="jk">
+        <option value="">Jenis Kelamin</option>
+        <option>Laki-laki</option>
+        <option>Perempuan</option>
+      </select>
+
+      <input class="tempat" placeholder="Tempat Lahir">
+
+      <input class="tgl" type="date">
+
+      <select class="agama">
+        <option value="">Agama</option>
+        <option>Islam</option>
+        <option>Kristen</option>
+        <option>Katholik</option>
+        <option>Hindu</option>
+        <option>Buddha</option>
+      </select>
+
+      <select class="pendidikan">
+        <option value="">Pendidikan</option>
+        <option>SD</option>
+        <option>SMP</option>
+        <option>SMA/SMK</option>
+        <option>D3</option>
+        <option>S1</option>
+        <option>S2</option>
+      </select>
+
+      <input class="pekerjaan" placeholder="Pekerjaan">
+
+      <select class="statuskk">
+        <option value="">Status KK</option>
+        <option>Kepala Keluarga</option>
+        <option>Istri</option>
+        <option>Anak</option>
+      </select>
+
+      <select class="statuskawin">
+        <option value="">Status Kawin</option>
+        <option>Belum Kawin</option>
+        <option>Kawin</option>
+      </select>
+
+      <select class="warga">
+        <option value="">Kewarganegaraan</option>
+        <option>WNI</option>
+        <option>WNA</option>
+      </select>
+
+    </div>
+
+    <br>
+
+    <button class="btn-danger" onclick="this.parentElement.remove()">
+      Hapus
+    </button>
+
+  `;
+
+  div.querySelector(".nik").addEventListener("input",e=>{
+    e.target.value=e.target.value.replace(/\D/g,'');
+  });
+
+  document.getElementById("anggotaContainer").appendChild(div);
+}
+
+/* =========================
+   SUBMIT
+========================= */
+
+async function submitData(){
+
+  try{
+
+    let data={
+      action:"saveKK",
+
+      no_kk:document.getElementById("no_kk").value.trim(),
+
+      alamat:document.getElementById("alamat").value.trim(),
+
+      blok:document.getElementById("blok").value.trim(),
+
+      no_rumah:document.getElementById("no_rumah").value.trim(),
+
+      status_huni:document.getElementById("status_huni").value,
+
+      anggota:[]
+    };
+
+    /* VALIDASI */
+
+    if(data.no_kk.length !== 16){
+      showToast("Nomor KK harus 16 digit","error");
+      return;
+    }
+
+    const anggota=document.querySelectorAll(".anggota");
+
+    if(anggota.length===0){
+      showToast("Tambah minimal 1 anggota","error");
+      return;
+    }
+
+    for(let el of anggota){
+
+      let nik=el.querySelector(".nik").value.trim();
+      let nama=el.querySelector(".nama").value.trim();
+
+      if(nik.length !== 16){
+        showToast("NIK harus 16 digit","error");
+        return;
+      }
+
+      if(nama===""){
+        showToast("Nama wajib diisi","error");
+        return;
+      }
+
+      data.anggota.push({
+        nik:nik,
+        nama:nama,
+        jk:el.querySelector(".jk").value,
+        tempat:el.querySelector(".tempat").value,
+        tgl:el.querySelector(".tgl").value,
+        agama:el.querySelector(".agama").value,
+        pendidikan:el.querySelector(".pendidikan").value,
+        pekerjaan:el.querySelector(".pekerjaan").value,
+        statuskk:el.querySelector(".statuskk").value,
+        statuskawin:el.querySelector(".statuskawin").value,
+        kewarganegaraan:el.querySelector(".warga").value
+      });
+
+    }
+
+    showLoading();
+
+    const res=await fetch(apiURL,{
+      method:"POST",
+      headers:{
+        "Content-Type":"text/plain;charset=utf-8"
+      },
+      body:JSON.stringify(data)
+    });
+
+    const result=await res.json();
+
+    hideLoading();
+
+    console.log(result);
+
+    if(
+      result.status==="success" ||
+      result.status==="ok"
+    ){
+
+      showToast("Data berhasil disimpan");
+
+      setTimeout(()=>{
+        location.reload();
+      },1000);
+
+    }else{
+
+      showToast("Gagal simpan data","error");
+
+      console.log(result);
+
+    }
+
+  }catch(err){
+
+    hideLoading();
+
+    console.log(err);
+
+    showToast("Server error","error");
+
+  }
+
+}
+
+/* AUTO TAMBAH 1 FORM */
+
+tambahAnggota();
+
+</script>
+
+</body>
+</html>
