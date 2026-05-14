@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Master Data Warga + Iuran</title>
+<script src="./xlsx.full.min.js"></script>
+<style>
+body{
+  font-family:'Segoe UI',sans-serif;
+  margin:0;
+  background:#f5f7fb;
+  padding:20px;
+}
+h2{
+  margin-top:40px;
+  margin-bottom:15px;
+}
+.modal-overlay{
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.5);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:10000;
+}
+.modal{
+  background:white;
+  padding:20px;
+  border-radius:12px;
+  width:90%;
+  max-width:500px;
+  max-height:80vh;
+  overflow:auto;
+}
+.modal h3{
+  margin-top:0;
+}
+.modal label{
+  display:block;
+  margin-top:10px;
+  font-weight:600;
+  font-size:14px;
+}
+.modal select,.modal input{
+  width:100%;
+  height:38px;
+  padding:0 10px;
+  margin-top:5px;
+  border:1px solid #dcdfe3;
+  border-radius:7px;
+  box-sizing:border-box;
+}
+.nominal-input{
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0 6px;
+}
+.nominal-input:disabled{
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+/* CHECKBOX 3D */
+.bulan-grid{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:12px;
+  margin-top:12px;
+}
+.bulan-item{
+  position: relative;
+}
+.bulan-item input[type="checkbox"]{
+  display: none;
+}
+.bulan-item label{
+  display: block;
+  padding: 12px 8px;
+  text-align: center;
+  background: linear-gradient(180deg, #ffffff 0%, #f3f4f6 100%);
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  box-shadow: 0 3px 0 #9ca3af, 0 4px 8px rgba(0,0,0,0.1);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.1s ease;
+  user-select: none;
+}
+
+.bulan-item input[type="checkbox"]:checked + label{
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  color: white;
+  border-color: #059669;
+  box-shadow: 0 3px 0 #047857, 0 4px 8px rgba(16,185,129,0.3);
+  transform: translateY(-1px);
+  font-size: 12px;
+}
+.bulan-item label:active{
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #9ca3af, 0 2px 4px rgba(0,0,0,0.1);
+}
+/* SPINNER */
+.spinner-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  display: none;
+}
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #e0e0e0;
+  border-top: 5px solid #0d6efd;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+ 0% { transform: rotate(0deg); }
+ 100% { transform: rotate(360deg); }
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+/* CARD */
+.card{
+  background:white;
+  border-radius:12px;
+  padding:15px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  overflow:auto;
+  max-height: 600px;
+}
+.toggle-btn{
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  width: 20px;
+  padding: 0;
+  margin-right: 5px;
+}
+.kk-row{
+  background: #e7f3f9;
+}
+.detail-row td{
+  border-top: 1px dashed #ddd;
+}
+/* TABLE MODERN STYLE */
+table{
+  border-collapse:separate;
+  border-spacing:0 9px;
+  width:max-content;
+  min-width:100%;
+}
+thead th{
+  position:sticky;
+  top:0;
+  background:#f1f3f5;
+  color:#555;
+  font-size:14px;
+  font-weight:600;
+  padding:10px 8px;
+  border:none;
+  text-align:left;
+  white-space:nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+tbody tr{
+  background:white;
+}
+tbody td{
+  padding:0 6px;
+  border:none;
+  vertical-align:middle;
+}
+thead th:hover{
+  background: #e2e6ea;
+}
+/* INPUT STYLE */
+td input,
+td select{
+  width:100%;
+  min-width:0;
+  height:36px;
+  padding:0 12px;
+  border:1px solid #dcdfe3;
+  border-radius:7px;
+  background:#def5ed;
+  font-size:14px;
+  color:#333;
+  outline:none;
+  transition:0.2s;
+  box-sizing:border-box;
+}
+td input:focus,
+td select:focus{
+  border-color:#0d6efd;
+  background:white;
+  box-shadow:0 0 0 3px rgba(13,110,253,0.12);
+}
+/* DELETE BUTTON */
+.delete-btn{
+  width:34px;
+  height:34px;
+  border:none;
+  border-radius:8px;
+  background:#dc3545;
+  color:white;
+  cursor:pointer;
+  font-size:14px;
+  transition:0.2s;
+}
+.delete-btn:hover{
+  transform:scale(1.05);
+  background:#bb2d3b;
+}
+.resizer{
+  position:absolute;
+  right:0;
+  top:0;
+  width:6px;
+  height:100%;
+  cursor:col-resize;
+  user-select:none;
+}
+.resizer:hover{
+  background:#ffffff55;
+}
+/* BUTTON */
+.btn{
+  padding:10px 14px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  color:white;
+  font-weight:bold;
+}
+.save{
+  background:#198754;
+}
+.add{
+  background:#007bff;
+}
+.delete{
+  background:#dc3545;
+}
+/* TOMBOL BAYAR 3D */
+.bayar-btn{
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 4px 0 #92400e, 0 5px 10px rgba(0,0,0,0.15);
+  transition: all 0.1s ease;
+}
+.bayar-btn:active{
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #92400e, 0 3px 6px rgba(0,0,0,0.15);
+}
+.toolbar{
+  margin-bottom:15px;
+  display:flex;
+  gap:10px;
+}
+/* IURAN BADGE */
+.kas{
+  background:#dbeafe;
+  color:#1d4ed8;
+  padding:4px 6px;
+  border-radius:6px;
+}
+.ipl{
+  background:#dff3e6;
+  color:#1d4ed8;
+  padding:4px 6px;
+  border-radius:6px;
+}
+.ipl-nonis{
+  background:#fdddff;
+  color:#1d4ed8;
+  padding:4px 6px;
+  border-radius:6px;
+}
+.ipl-pengurus{
+  background:#f5d1d1;
+  color:#1d4ed8;
+  padding:4px 6px;
+  border-radius:6px;
+}
+.pos{
+  background:#f9fdb2;
+  color:#1d4ed8;
+  padding:4px 6px;
+  border-radius:6px;
+}
+.fasum{
+  background:#f9fdb2;
+  color:#1d4ed8;
+  padding:4px 6px;
+  border-radius:6px;
+}
+.kosong{
+  color:#999;
+}
+.modal-actions{
+  display:flex;
+  gap:10px;
+  margin-top:15px;
+}
+</style>
+</head>
+<body>
+<div class="spinner-overlay" id="spinner">
+  <div class="spinner"></div>
+</div>
+<div class="toolbar">
+<button class="btn add" onclick="tambahRow()">➕ Tambah Data</button>
+<button class="btn save" onclick="saveSemua()">💾 Simpan Semua</button>
+</div>
+<h2>📋 MASTER DATA WARGA</h2>
+<div class="card">
+<table id="tableWarga">
+<thead>
+<tr>
+<th>No KK</th>
+<th>NIK</th>
+<th>Nama</th>
+<th>Jenis Kelamin</th>
+<th>Tanggal Lahir</th>
+<th>Agama</th>
+<th>Status KK</th>
+<th>Pekerjaan</th>
+<th>Blok</th>
+<th>No Rumah</th>
+<th>Status Huni</th>
+<th>Alamat</th>
+<th>Aksi</th>
+</tr>
+</thead>
+<tbody id="bodyWarga"></tbody>
+</table>
+</div>
+<h2>💰 REKAP IURAN</h2>
+<div class="card">
+<table id="tableIuran">
+<thead id="headerIuran"></thead>
+<tbody id="bodyIuran"></tbody>
+</table>
+</div>
+<div class="toolbar" style="margin-top:15px; justify-content:flex-end;">
+  <button class="btn bayar-btn" onclick="openBayarModal()">💳Bayar Iuran</button></button>
+  <button class="btn" style="background:#107c41;" onclick="exportExcel()">📊</button>
+</div>
+<script>
+const apiURL = "https://script.google.com/macros/s/AKfycbzUdw6sOc74FdtSFxKOUA1Uu236TXdc_E_eelUaVIct6LErZAkGiY_0wUSchWyCkjYM/exec";
+let rawData = [];
+let iuranData = [];
+const spinner = document.getElementById('spinner');
+const btnSave = document.querySelector('.btn.save');
+function formatDateForInput(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  if (isNaN(d)) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+function formatRibu(num) {
+  if (!num) return '';
+  num = Number(num);
+  if (num >= 1000) {
+    return (num / 1000) + 'K';
+  }
+  return num.toString();
+}
+function showSpinner() {
+  spinner.style.display = 'flex';
+  btnSave.disabled = true;
+}
+function hideSpinner() {
+  spinner.style.display = 'none';
+  btnSave.disabled = false;
+}
+function loadData(){
+fetch(apiURL)
+.then(res => res.json())
+.then(data => {
+  rawData = data.warga || [];
+  iuranData = data.iuran || [];
+  renderTableWarga();
+  renderTableIuran();
+})
+.catch(err => {
+  console.log(err);
+  alert("Gagal load data");
+})
+.finally(() => {
+    hideSpinner();
+});
+}
+function renderTableWarga(){
+  let grouped = groupByKK(rawData);
+  let html = "";
+  Object.keys(grouped).forEach(kk => {
+    let anggota = grouped[kk];
+    let kepala = anggota.find(a => String(a.status_keluarga || "").toLowerCase().includes("kepala")) || anggota[0];
+    let jmlAnggota = anggota.length;
+    html += `
+    <tr class="kk-row" data-kk="${kk}">
+      <td><button class="toggle-btn" onclick="toggleDetail('${kk}')">▶</button>${kk}</td>
+      <td>${kepala.nik || ''}</td><td>${kepala.nama || ''}</td><td>${kepala.jenis_kelamin || ''}</td>
+      <td>${formatDateForInput(kepala.tanggal_lahir) || ''}</td><td>${kepala.agama || ''}</td>
+      <td>Kepala Keluarga</td><td>${kepala.pekerjaan || ''}</td><td>${kepala.blok || ''}</td>
+      <td>${kepala.no_rumah || ''}</td><td>${kepala.status_huni || ''}</td><td>${kepala.alamat || ''}</td>
+      <td>${jmlAnggota} orang</td>
+    </tr>
+    `;
+    anggota.forEach((r, i) => {
+      html += `
+      <tr class="detail-row detail-${kk}" data-kk="${kk}" style="display:none; background:#f9fafb">
+        <td style="padding-left:30px;">▶</td>
+        <td><input value="${r.nik || ''}"></td><td><input value="${r.nama || ''}"></td>
+        <td><select><option ${r.jenis_kelamin=="Laki-laki"?"selected":""}>Laki-laki</option><option ${r.jenis_kelamin=="Perempuan"?"selected":""}>Perempuan</option></select></td>
+        <td><input type="date" value="${formatDateForInput(r.tanggal_lahir)}"></td>
+        <td>
+	<select>
+	<option ${r.agama=="Islam"?"selected":""}>Islam</option>
+	<option ${r.agama=="Kristen"?"selected":""}>Kristen</option>
+	<option ${r.agama=="Katholik"?"selected":""}>Katholik</option>
+	<option ${r.agama=="Hindu"?"selected":""}>Hindu</option>
+	<option ${r.agama=="Buddha"?"selected":""}>Buddha</option>
+	</select>
+	</td>
+        <td>
+	<select>
+	<option ${r.status_keluarga=="Kepala Keluarga"?"selected":""}>Kepala Keluarga</option>
+	<option ${r.status_keluarga=="Istri"?"selected":""}>Istri</option>
+	<option ${r.status_keluarga=="Anak"?"selected":""}>Anak</option>
+	<option ${r.status_keluarga=="Famili Lain"?"selected":""}>Famili Lain</option>
+	</select>
+	</td>
+        <td>
+	<select>
+	<option ${r.pekerjaan=="Belum/Tidak Bekerja"?"selected":""}>Belum/Tidak Bekerja</option>
+	<option ${r.pekerjaan=="Ibu Rumah Tangga"?"selected":""}>Ibu Rumah Tangga</option>
+	<option ${r.pekerjaan=="Pelajar/Mahasiswa"?"selected":""}>Pelajar/Mahasiswa</option>
+	<option ${r.pekerjaan=="Karyawan Swasta"?"selected":""}>Karyawan Swasta</option>
+	<option ${r.pekerjaan=="Pegawai Negeri Sipil"?"selected":""}>Pegawai Negeri Sipil</option>
+	<option ${r.pekerjaan=="Pegawai Honorer"?"selected":""}>Pegawai Honorer</option>
+	<option ${r.pekerjaan=="Wiraswasta"?"selected":""}>Wiraswasta</option>
+	<option ${r.pekerjaan=="Pedagang"?"selected":""}>Pedagang</option>
+	<option ${r.pekerjaan=="Petani/Pekebun"?"selected":""}>Petani/Pekebun</option>
+	<option ${r.pekerjaan=="Nelayan"?"selected":""}>Nelayan</option>
+	<option ${r.pekerjaan=="Buruh Harian Lepas"?"selected":""}>Buruh Harian Lepas</option>
+	<option ${r.pekerjaan=="Sopir"?"selected":""}>Sopir</option>
+	<option ${r.pekerjaan=="Guru"?"selected":""}>Guru</option>
+	<option ${r.pekerjaan=="Dokter"?"selected":""}>Dokter</option>
+	<option ${r.pekerjaan=="Bidan"?"selected":""}>Bidan</option>
+	<option ${r.pekerjaan=="Perawat"?"selected":""}>Perawat</option>
+	<option ${r.pekerjaan=="TNI"?"selected":""}>TNI</option>
+	<option ${r.pekerjaan=="Polri"?"selected":""}>Polri</option>
+	<option ${r.pekerjaan=="Lainnya"?"selected":""}>Lainnya</option>
+	</select>
+	</td>
+        <td><input value="${r.blok || ''}"></td><td><input value="${r.no_rumah || ''}"></td>
+        <td>
+	<select>
+	<option ${r.status_huni=="huni"?"selected":""}>huni</option>
+	<option ${r.status_huni=="belum huni"?"selected":""}>belum huni</option>
+	</select>
+	</td>
+        <td><input value="${r.alamat || ''}"></td>
+        <td><button class="btn delete" onclick="hapusRow(this)">🗑️</button></td>
+      </tr>
+      `;
+    });
+  });
+  document.getElementById("bodyWarga").innerHTML = html;
+}
+function tambahRow(){
+let html = `
+<tr data-kk="">
+<td><input placeholder="No KK"></td><td><input></td><td><input></td>
+<td><select><option>Laki-laki</option><option>Perempuan</option></select></td>
+<td><input type="date"></td>
+<td>
+<select>
+<option>Islam</option>
+<option>Kristen</option>
+<option>Katholik</option>
+<option>Hindu</option>
+<option>Buddha</option>
+</select>
+</td>
+<td>
+<select>
+<option>Kepala Keluarga</option>
+<option>Istri</option>
+<option>Anak</option>
+<option>Famili Lain</option>
+</select>
+</td>
+<td>
+<select>
+<option>Belum/Tidak Bekerja</option>
+<option>Ibu Rumah Tangga</option>
+<option>Pelajar/Mahasiswa</option>
+<option>Pensiunan</option>
+<option>Karyawan Swasta</option>
+<option>Pegawai Negeri Sipil</option>
+<option>Pegawai Honorer</option>
+<option>Wiraswasta</option>
+<option>Pedagang</option>
+<option>Petani/Pekebun</option>
+<option>Nelayan</option>
+<option>Buruh Harian Lepas</option>
+<option>Sopir</option>
+<option>Guru</option>
+<option>Dokter</option>
+<option>Bidan</option>
+<option>Perawat</option>
+<option>TNI</option>
+<option>Polri</option>
+<option>Lainnya</option>
+</select>
+</td>
+<td><input></td><td><input></td>
+<td>
+<select>
+<option>huni</option>
+<option>belum huni</option>
+</select>
+</td>
+<td><input></td>
+<td><button class="btn delete" onclick="hapusRow(this)">🗑️</button></td>
+</tr>
+`;
+document.getElementById("bodyWarga").insertAdjacentHTML("beforeend",html);
+}
+function hapusRow(btn){
+if(confirm("Hapus data ini?")){
+btn.parentElement.parentElement.remove();
+}
+}
+function saveSemua(){
+  let rows = document.querySelectorAll("#bodyWarga tr.detail-row, #bodyWarga tr:not(.kk-row):not(.detail-row)");
+  let data = [];
+  rows.forEach(r=>{
+    let x = r.querySelectorAll("input,select");
+    if(x.length === 0) return;
+    let noKK = r.dataset.kk || x[0].value;
+    data.push({
+      no_kk: noKK,
+      nik: x[r.dataset.kk? 0 : 1].value,
+      nama: x[r.dataset.kk? 1 : 2].value,
+      jenis_kelamin: x[r.dataset.kk? 2 : 3].value,
+      tanggal_lahir: x[r.dataset.kk? 3 : 4].value,
+      agama: x[r.dataset.kk? 4 : 5].value,
+      status_keluarga: x[r.dataset.kk? 5 : 6].value,
+      pekerjaan: x[r.dataset.kk? 6 : 7].value,
+      blok: x[r.dataset.kk? 7 : 8].value,
+      no_rumah: x[r.dataset.kk? 8 : 9].value,
+      status_huni: x[r.dataset.kk? 9 : 10].value,
+      alamat: x[r.dataset.kk? 10 : 11].value
+    });
+  });
+showSpinner();
+fetch(apiURL,{
+  method:"POST",
+  headers:{"Content-Type":"text/plain;charset=utf-8"},
+  body:JSON.stringify({action:"saveMassal",data:data})
+})
+.then(res=>res.json())
+.then(res=>{
+  alert("Berhasil disimpan");
+  loadData();
+})
+.catch(err=>{
+  alert("Server error: " + err.message);
+})
+.finally(() => {
+    hideSpinner();
+});
+}
+function getPeriode24Bulan(){
+let tahun = new Date().getFullYear();
+let list = [];
+["Jul","Agu","Sep","Okt","Nov","Des"].forEach(b=>{list.push({bulan:b,tahun:tahun-1});});
+["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"].forEach(b=>{list.push({bulan:b,tahun:tahun});});
+["Jan","Feb","Mar","Apr","Mei","Jun"].forEach(b=>{list.push({bulan:b,tahun:tahun+1});});
+return list;
+}
+function groupByKK(data){
+let g = {};
+data.forEach(r=>{
+if(!g[r.no_kk]){g[r.no_kk] = [];}
+g[r.no_kk].push(r);
+});
+return g;
+}
+function renderTableIuran(){
+let grouped = groupByKK(rawData);
+let bulanList = getPeriode24Bulan();
+
+/* HEADER - FIXED */
+let header = `
+<tr>
+  <th onclick="sortTableIuran('blok')">Blok ⇅</th>
+  <th onclick="sortTableIuran('no_rumah')">No Rumah ⇅</th>
+  <th onclick="sortTableIuran('nama')">Kepala Keluarga ⇅</th>
+  <th onclick="sortTableIuran('status_huni')">Status Huni ⇅</th>
+  <th>POS</th>
+  <th>FASUM</th>
+`;
+bulanList.forEach(b=>{
+  header += `<th>${b.bulan}'${String(b.tahun).slice(2)}</th>`;
+});
+header += `</tr>`;
+document.getElementById("headerIuran").innerHTML = header;
+/* BODY */
+let body = "";
+Object.keys(grouped).forEach(kk=>{
+let anggota = grouped[kk];
+let first = anggota[0];
+let kepala = anggota.find(a=>String(a.status_keluarga || "").toLowerCase().includes("kepala"));
+let namaKK = kepala? kepala.nama : first.nama;
+body += `<tr><td>${first.blok || "-"}</td><td>${first.no_rumah || "-"}</td><td>${namaKK}</td><td>${first.status_huni || "-"}</td>`;
+// Cek POS dan FASUM
+let bayarPos = iuranData.find(i => String(i.no_kk).trim()===kk && String(i.jenis).toUpperCase()==='POS');
+let bayarFasum = iuranData.find(i => String(i.no_kk).trim()===kk && String(i.jenis).toUpperCase()==='FASUM');
+if(bayarPos){
+  body += `<td><span class="pos">☑ POS - 100K</span></td>`;
+}else{
+  body += `<td><span class="kosong">⬜ POS</span></td>`;
+}
+if(bayarFasum){
+  body += `<td><span class="fasum">☑ FASUM - 100K</span></td>`;
+}else{
+  body += `<td><span class="kosong">⬜ FASUM</span></td>`;
+}
+bulanList.forEach(b=>{
+  let bayar = iuranData.find(i => String(i.no_kk).trim() === String(kk).trim() && String(i.bulan).trim().toLowerCase() === String(b.bulan).trim().toLowerCase() && String(i.tahun).trim() === String(b.tahun));
+  let isi = `<span class="kosong">⬜</span>`;
+  if(bayar){
+    let nominal = formatRibu(bayar.nominal);
+    if(String(bayar.jenis).toUpperCase() === "KAS"){
+      isi = `<span class="kas">☑ KAS - ${nominal}</span>`;
+    }
+    else if(String(bayar.jenis).toUpperCase() === "IPL"){
+      let nominalNum = Number(bayar.nominal);
+      let classIPL = "ipl";
+  
+      if(nominalNum === 60000) classIPL = "ipl-nonis";
+      else if(nominalNum === 50000) classIPL = "ipl-pengurus";
+      isi = `<span class="${classIPL}">☑ IPL - ${nominal}</span>`;
+    }
+  }
+  body += `<td>${isi}</td>`;
+});
+body += `</tr>`;
+});
+document.getElementById("bodyIuran").innerHTML = body;
+}
+let sortState = { key: '', asc: true };
+function sortTableIuran(key){
+  // Toggle arah kalau klik kolom yang sama
+  if(sortState.key === key){
+    sortState.asc =!sortState.asc;
+  }else{
+    sortState.key = key;
+    sortState.asc = true;
+  }
+  let grouped = groupByKK(rawData);
+  let arr = Object.keys(grouped).map(kk => {
+    let anggota = grouped[kk];
+    let first = anggota[0];
+    let kepala = anggota.find(a=>String(a.status_keluarga || "").toLowerCase().includes("kepala"));
+    return {
+      kk: kk,
+      blok: first.blok || '',
+      no_rumah: parseInt(first.no_rumah) || 0,
+      nama: kepala? kepala.nama : first.nama,
+      status_huni: first.status_huni || ''
+    };
+  });
+  arr.sort((a,b) => {
+    // Multi-level sort: Blok dulu, baru No Rumah
+    let blokA = String(a.blok).toLowerCase();
+    let blokB = String(b.blok).toLowerCase();
+    if(blokA < blokB) return sortState.asc? -1 : 1;
+    if(blokA > blokB) return sortState.asc? 1 : -1;
+    // Kalau blok sama, urutin no_rumah
+    if(a.no_rumah < b.no_rumah) return -1;
+    if(a.no_rumah > b.no_rumah) return 1;
+    // Kalau klik kolom lain, timpa sort sekundernya
+    if(key!== 'blok' && key!== 'no_rumah'){
+      let valA = String(a[key]).toLowerCase();
+      let valB = String(b[key]).toLowerCase();
+      if(valA < valB) return sortState.asc? -1 : 1;
+      if(valA > valB) return sortState.asc? 1 : -1;
+    }
+    return 0;
+  });
+  renderTableIuranSorted(arr);
+}
+function renderTableIuranSorted(sortedArr){
+  let bulanList = getPeriode24Bulan();
+  let grouped = groupByKK(rawData);
+  /* BODY */
+  let body = "";
+  sortedArr.forEach(item => {
+    let kk = item.kk;
+    let anggota = grouped[kk];
+    let first = anggota[0];
+    let kepala = anggota.find(a=>String(a.status_keluarga || "").toLowerCase().includes("kepala"));
+    let namaKK = kepala? kepala.nama : first.nama;
+    body += `<tr><td>${first.blok || "-"}</td><td>${first.no_rumah || "-"}</td><td>${namaKK}</td>`;
+    body += `<td>${first.status_huni || "-"}</td>`;
+    // POS dan FASUM
+    let bayarPos = iuranData.find(i => String(i.no_kk).trim()===kk && String(i.jenis).toUpperCase()==='POS');
+    let bayarFasum = iuranData.find(i => String(i.no_kk).trim()===kk && String(i.jenis).toUpperCase()==='FASUM');
+    body += bayarPos
+     ? `<td><span class="pos">☑ POS - 100K</span></td>`
+      : `<td><span class="kosong">⬜ POS</span></td>`;
+    body += bayarFasum
+     ? `<td><span class="fasum">☑ FASUM - 100K</span></td>`
+      : `<td><span class="kosong">⬜ FASUM</span></td>`;
+    bulanList.forEach(b=>{
+      let bayar = iuranData.find(i =>
+        String(i.no_kk).trim() === String(kk).trim() &&
+        String(i.bulan).trim().toLowerCase() === String(b.bulan).trim().toLowerCase() &&
+        String(i.tahun).trim() === String(b.tahun)
+      );
+      let isi = `<span class="kosong">⬜</span>`;
+      if(bayar){
+        let nominal = formatRibu(bayar.nominal);
+        if(String(bayar.jenis).toUpperCase() === "KAS"){
+          isi = `<span class="kas">☑ KAS - ${nominal}</span>`;
+        }
+        else if(String(bayar.jenis).toUpperCase() === "IPL"){
+          let nominalNum = Number(bayar.nominal);
+          let classIPL = "ipl";
+          if(nominalNum === 60000) classIPL = "ipl-nonis";
+          else if(nominalNum === 50000) classIPL = "ipl-pengurus";
+          isi = `<span class="${classIPL}">☑ IPL - ${nominal}</span>`;
+        }
+      }
+      body += `<td>${isi}</td>`;
+    });
+    body += `</tr>`;
+  });
+  document.getElementById("bodyIuran").innerHTML = body;
+}
+loadData();
+window.onload = () => {
+  enableResize("tableWarga");
+  enableResize("tableIuran");
+};
+function enableResize(tableId){
+  const table = document.getElementById(tableId);
+  const cols = table.querySelectorAll("th");
+  cols.forEach(col => {
+    const resizer = document.createElement("div");
+    resizer.classList.add("resizer");
+    col.appendChild(resizer);
+    let startX, startWidth;
+    resizer.addEventListener("mousedown", e => {
+      startX = e.pageX;
+      startWidth = col.offsetWidth;
+      document.addEventListener("mousemove", resizeColumn);
+      document.addEventListener("mouseup", stopResize);
+    });
+    function resizeColumn(e){
+      let newWidth = startWidth + (e.pageX - startX);
+      col.style.width = newWidth + "px";
+    }
+    function stopResize(){
+      document.removeEventListener("mousemove", resizeColumn);
+      document.removeEventListener("mouseup", stopResize);
+    }
+  });
+}
+function toggleDetail(kk){
+  let rows = document.querySelectorAll(`.detail-${kk}`);
+  let btn = document.querySelector(`.kk-row[data-kk="${kk}"].toggle-btn`);
+  if(!rows.length) return;
+  let isHidden = rows[0].style.display === "none";
+  rows.forEach(r => r.style.display = isHidden? "table-row" : "none");
+  if(btn) btn.textContent = isHidden? "▼" : "▶";
+}
+function openBayarModal(){
+  document.getElementById('bayarModal').style.display = 'flex';
+  let grouped = groupByKK(rawData);
+  let selectKK = document.getElementById('selectKK');
+  selectKK.innerHTML = '';
+  Object.keys(grouped).forEach(kk=>{
+    let kepala = grouped[kk].find(a=>String(a.status_keluarga||"").toLowerCase().includes("kepala")) || grouped[kk][0];
+    let opt = document.createElement('option');
+    opt.value = kk;
+    opt.textContent = `${kk} - ${kepala.nama}`;
+    selectKK.appendChild(opt);
+  });
+  let tahun = new Date().getFullYear();
+  let selectTahun = document.getElementById('selectTahun');
+  selectTahun.innerHTML = '';
+  for(let t=tahun-1; t<=tahun+1; t++){
+    let opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = t;
+    if(t===tahun) opt.selected = true;
+    selectTahun.appendChild(opt);
+  }
+  loadBulanBayar();
+}
+function closeBayarModal(){
+  document.getElementById('bayarModal').style.display = 'none';
+  document.getElementById('bulanContainer').innerHTML = '';
+}
+function exportExcel(){
+  if(typeof XLSX === 'undefined'){
+    alert('SheetJS belum load. Refresh halaman dulu.');
+    return;
+  }
+  const table = document.getElementById("tableIuran");
+  const wb = XLSX.utils.book_new();
+  const ws = {};
+  const rows = table.rows.length;
+  const cols = table.rows[0].cells.length;
+  const range = {s:{r:0,c:0}, e:{r:rows-1, c:cols-1}};
+  for(let R = 0; R < rows; R++){
+    for(let C = 0; C < cols; C++){
+      const cellEl = table.rows[R].cells[C];
+      const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
+      const cellText = cellEl.innerText.trim();
+      ws[cellAddress] = {v: cellText, t: "s"};
+      const span = cellEl.querySelector('span');
+      let bgColor = null;
+      if(span){
+        if(span.classList.contains('kas')) bgColor = 'DBEAFE';
+        else if(span.classList.contains('ipl')) bgColor = 'DFF3E6';
+        else if(span.classList.contains('ipl-nonis')) bgColor = 'FDDDFF';
+        else if(span.classList.contains('ipl-pengurus')) bgColor = 'F5D1D1';
+        else if(span.classList.contains('pos') || span.classList.contains('fasum')) bgColor = 'F9FDB2';
+      }
+      if(R === 0){
+        ws[cellAddress].s = {
+          fill: { fgColor: { rgb: 'F1F3F5' }, patternType: "solid" },
+          font: { bold: true, color: { rgb: '555' } },
+          alignment: { horizontal: "center", vertical: "center" }
+        };
+      } else if(bgColor){
+        ws[cellAddress].s = {
+          fill: { fgColor: { rgb: bgColor }, patternType: "solid" },
+          font: { color: { rgb: '1D4ED8' } },
+          alignment: { vertical: "center" },
+          border: {
+            top: {style: "thin", color: {rgb: "E5E7EB"}},
+            bottom: {style: "thin", color: {rgb: "E5E7EB"}},
+            left: {style: "thin", color: {rgb: "E5E7EB"}},
+            right: {style: "thin", color: {rgb: "E5E7EB"}}
+          }
+        };
+      }
+    }
+  }
+  ws['!ref'] = XLSX.utils.encode_range(range);
+  ws['!freeze'] = {ySplit: 1};
+  // Auto width
+  const colWidths = [];
+  for(let C = 0; C < cols; C++){
+    let maxLen = 8;
+    for(let R = 0; R < rows; R++){
+      const addr = XLSX.utils.encode_cell({r: R, c: C});
+      if(ws[addr] && ws[addr].v){
+        maxLen = Math.max(maxLen, String(ws[addr].v).length);
+      }
+    }
+    colWidths.push({wch: Math.min(maxLen + 2, 30)});
+  }
+  ws['!cols'] = colWidths;
+  XLSX.utils.book_append_sheet(wb, ws, "Rekap Iuran");
+  XLSX.writeFile(wb, "Rekap_Iuran.xlsx");
+}
+function loadBulanBayar(){
+  let kk = document.getElementById('selectKK').value;
+  let tahun = document.getElementById('selectTahun').value;
+  let container = document.getElementById('bulanContainer');
+  let bulanList = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+  let html = '<label>Pilih Bulan yang Dibayar:</label><div class="bulan-grid">';
+  bulanList.forEach(bulan=>{
+    // Cari status huni yang berlaku di bulan + tahun ini
+    let anggotaKK = rawData.filter(r => String(r.no_kk).trim()===String(kk).trim());
+    let statusHuni = 'belum huni'; // default
+    if(anggotaKK.length > 0){
+      // ambil status huni dari salah satu anggota, biasanya sama semua
+      statusHuni = anggotaKK[0].status_huni || 'belum huni';
+    }
+    let jenisYangDicek = String(statusHuni).toLowerCase()==='huni'? 'IPL' : 'KAS';
+
+    let bayar = iuranData.find(i=>
+      String(i.no_kk).trim()===String(kk).trim() &&
+      String(i.bulan).trim().toLowerCase()===bulan.toLowerCase() &&
+      String(i.tahun).trim()===String(tahun).trim() &&
+      String(i.jenis).toUpperCase()===jenisYangDicek
+    );
+    let sudahBayar =!!bayar;
+    let checked = sudahBayar? 'checked' : '';
+    let nominalVal = bayar? bayar.nominal : '';
+    let labelText = sudahBayar? `Lunas - ${bulan} (${jenisYangDicek})` : `${bulan} (${jenisYangDicek})`;
+    html += `
+    <div class="bulan-item">
+      <input type="checkbox" id="bulan_${bulan}" ${checked} ${sudahBayar? 'disabled' : ''}
+         data-bulan="${bulan}" onchange="toggleNominal('${bulan}')">
+      <label for="bulan_${bulan}">${labelText}</label>
+      <input type="number" id="nominal_${bulan}" class="nominal-input"
+             value="${nominalVal}" placeholder="Nominal"
+             ${checked? '' : 'disabled'} ${sudahBayar? 'readonly' : ''}>
+    </div>
+    `;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+// Cek iuran sekali bayar
+let sudahBayarPos = iuranData.some(i =>
+  String(i.no_kk).trim()===kk &&
+  String(i.jenis).toUpperCase()==='POS' &&
+  String(i.bulan)==='POS'
+);
+let sudahBayarFasum = iuranData.some(i =>
+  String(i.no_kk).trim()===kk &&
+  String(i.jenis).toUpperCase()==='FASUM' &&
+  String(i.bulan)==='FASUM'
+);
+document.getElementById('cekPos').checked = sudahBayarPos;
+document.getElementById('cekPos').disabled = sudahBayarPos;
+document.getElementById('labelPos').innerHTML = sudahBayarPos 
+  ? 'Lunas Iuran POS<br><small>Rp 100.000</small>' 
+  : 'Iuran POS<br><small>Rp 100.000</small>';
+
+document.getElementById('cekFasum').checked = sudahBayarFasum;
+document.getElementById('cekFasum').disabled = sudahBayarFasum;
+document.getElementById('labelFasum').innerHTML = sudahBayarFasum 
+  ? 'Lunas Iuran Fasum<br><small>Rp 100.000</small>' 
+  : 'Iuran Fasum<br><small>Rp 100.000</small>';
+}
+function toggleNominal(bulan){
+  let cb = document.getElementById('bulan_' + bulan);
+  let input = document.getElementById('nominal_' + bulan);
+  input.disabled =!cb.checked;
+  if(!cb.checked) input.value = '';
+}
+function simpanBayar(){
+  let kk = document.getElementById('selectKK').value;
+  let tahun = document.getElementById('selectTahun').value;
+  let jenis = document.getElementById('selectJenis').value;
+  let dataUpdate = [];
+  let valid = true;
+  document.querySelectorAll('#bulanContainer input[type=checkbox]').forEach(cb=>{
+    if(cb.checked){
+      let bulan = cb.dataset.bulan;
+      let nominal = document.getElementById('nominal_' + bulan).value;
+      if(!nominal){
+        alert('Nominal bulan ' + bulan + ' belum diisi!');
+        valid = false;
+      }else{
+        dataUpdate.push({no_kk: kk,bulan: bulan,tahun: tahun,jenis: jenis,nominal: nominal});
+      }
+    }
+  });
+  if(document.getElementById('cekPos').checked){
+    dataUpdate.push({no_kk: kk,bulan: 'POS',tahun: '',jenis: 'POS',nominal: 100000});
+  }
+  if(document.getElementById('cekFasum').checked){
+    dataUpdate.push({no_kk: kk,bulan: 'FASUM',tahun: '',jenis: 'FASUM',nominal: 100000});
+  }
+  if(!valid && dataUpdate.length===0){
+    alert('Pilih minimal 1 iuran');
+    return;
+  }
+  showSpinner();
+  fetch(apiURL,{
+    method:"POST",
+    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body:JSON.stringify({action:"updateIuran",data:dataUpdate})
+  })
+.then(res=>res.json())
+.then(res=>{
+    alert('Berhasil disimpan');
+    closeBayarModal();
+    loadData();
+  })
+.catch(err=>{
+    alert('Error: '+err.message);
+  })
+.finally(()=>{
+    hideSpinner();
+  });
+}
+</script>
+<div class="modal-overlay" id="bayarModal">
+  <div class="modal">
+    <h3>💳 Input Pembayaran Iuran</h3>
+    <label>Kepala Keluarga:</label>
+    <select id="selectKK" onchange="loadBulanBayar()"></select>
+    <label>Tahun:</label>
+    <select id="selectTahun" onchange="loadBulanBayar()"></select>
+    <div id="bulanContainer"></div>
+    <div style="margin-top:15px; padding-top:15px; border-top:1px solid #e5e7eb;">
+      <label>Iuran Sekali Bayar:</label>
+      <div style="display:flex; gap:15px; margin-top:8px;">
+	<div class="bulan-item" style="flex:1;">
+  	  <input type="checkbox" id="cekPos">
+ 	  <label for="cekPos" id="labelPos">Iuran POS<br><small>Rp 100.000</small></label>
+	</div>
+        <div class="bulan-item" style="flex:1;">
+          <input type="checkbox" id="cekFasum">
+ 	  <label for="cekFasum" id="labelFasum">Iuran FASUM<br><small>Rp 100.000</small></label>
+        </div>
+      </div>
+    </div>
+    <label>Jenis Iuran Bulanan:</label>
+    <select id="selectJenis">
+      <option value="KAS">KAS</option>
+      <option value="IPL">IPL</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn save" onclick="simpanBayar()">Simpan</button>
+      <button class="btn delete" onclick="closeBayarModal()">Batal</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
