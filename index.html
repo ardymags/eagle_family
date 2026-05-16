@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <title>Master Data Warga + Iuran</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="./xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 body{
   font-family:'Segoe UI',sans-serif;
@@ -11,10 +14,14 @@ body{
   background:#f5f7fb;
   padding:20px;
 }
+#tableIuran{
+  zoom: 1;
+}
 h2{
   margin-top:40px;
   margin-bottom:15px;
 }
+
 .modal-overlay{
   position:fixed;
   top:0; left:0;
@@ -25,6 +32,7 @@ h2{
   justify-content:center;
   z-index:10000;
 }
+
 .modal{
   background:white;
   padding:20px;
@@ -34,34 +42,83 @@ h2{
   max-height:80vh;
   overflow:auto;
 }
+
 .modal h3{
   margin-top:0;
 }
+
 .modal label{
   display:block;
   margin-top:10px;
   font-weight:600;
   font-size:14px;
 }
-.modal select,.modal input{
+
+.modal input,
+.modal select{
   width:100%;
-  height:38px;
-  padding:0 10px;
+  height:42px;
+  padding:0 12px;
   margin-top:5px;
-  border:1px solid #dcdfe3;
-  border-radius:7px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  background: #f9fafb;
+  box-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.08),
+    inset 0 -1px 0 rgba(255,255,255,0.7);
+  font-size:14px;
+  font-weight:500;
+  color:#333;
+  outline:none;
+  transition: all 0.15s ease;
   box-sizing:border-box;
 }
+
+.modal input:focus,
+.modal select:focus{
+  border-color: #10b981;
+  background: #ffffff;
+  box-shadow: 
+    inset 0 2px 6px rgba(16,185,129,0.15),
+    0 0 0 3px rgba(16,185,129,0.15);
+}
+
+.modal input:active,
+.modal select:active{
+  background: #f3f4f6;
+  box-shadow: 
+    inset 0 3px 6px rgba(0,0,0,0.12);
+}
+
+.modal select{
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns=N/A fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 35px;
+}
+
+.modal input:disabled,
+.modal select:disabled{
+  background: #f3f4f6;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
 .nominal-input{
   width: 100%;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   padding: 0 6px;
 }
+
 .nominal-input:disabled{
   background: #f3f4f6;
   cursor: not-allowed;
 }
+
 /* CHECKBOX 3D */
 .bulan-grid{
   display:grid;
@@ -69,12 +126,15 @@ h2{
   gap:12px;
   margin-top:12px;
 }
+
 .bulan-item{
   position: relative;
 }
+
 .bulan-item input[type="checkbox"]{
   display: none;
 }
+
 .bulan-item label{
   display: block;
   padding: 12px 8px;
@@ -98,10 +158,12 @@ h2{
   transform: translateY(-1px);
   font-size: 12px;
 }
+
 .bulan-item label:active{
   transform: translateY(2px);
   box-shadow: 0 1px 0 #9ca3af, 0 2px 4px rgba(0,0,0,0.1);
 }
+
 /* SPINNER */
 .spinner-overlay {
   position: fixed;
@@ -114,6 +176,7 @@ h2{
   z-index: 9999;
   display: none;
 }
+
 .spinner {
   width: 50px;
   height: 50px;
@@ -122,23 +185,25 @@ h2{
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+
 @keyframes spin {
  0% { transform: rotate(0deg); }
  100% { transform: rotate(360deg); }
 }
+
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
 /* CARD */
 .card{
-  background:white;
   border-radius:12px;
   padding:15px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.08);
   overflow:auto;
   max-height: 600px;
 }
+
 .toggle-btn{
   border: none;
   background: none;
@@ -148,12 +213,15 @@ h2{
   padding: 0;
   margin-right: 5px;
 }
+
 .kk-row{
   background: #e7f3f9;
 }
+
 .detail-row td{
   border-top: 1px dashed #ddd;
 }
+
 /* TABLE MODERN STYLE */
 table{
   border-collapse:separate;
@@ -161,6 +229,7 @@ table{
   width:max-content;
   min-width:100%;
 }
+
 thead th{
   position:sticky;
   top:0;
@@ -175,9 +244,11 @@ thead th{
   cursor: pointer;
   user-select: none;
 }
+
 tbody tr{
   background:white;
 }
+
 tbody td{
   padding:0 6px;
   border:none;
@@ -186,6 +257,7 @@ tbody td{
 thead th:hover{
   background: #e2e6ea;
 }
+
 /* INPUT STYLE */
 td input,
 td select{
@@ -202,12 +274,14 @@ td select{
   transition:0.2s;
   box-sizing:border-box;
 }
+
 td input:focus,
 td select:focus{
   border-color:#0d6efd;
   background:white;
   box-shadow:0 0 0 3px rgba(13,110,253,0.12);
 }
+
 /* DELETE BUTTON */
 .delete-btn{
   width:34px;
@@ -220,10 +294,12 @@ td select:focus{
   font-size:14px;
   transition:0.2s;
 }
+
 .delete-btn:hover{
   transform:scale(1.05);
   background:#bb2d3b;
 }
+
 .resizer{
   position:absolute;
   right:0;
@@ -233,9 +309,11 @@ td select:focus{
   cursor:col-resize;
   user-select:none;
 }
+
 .resizer:hover{
   background:#ffffff55;
 }
+
 /* BUTTON */
 .btn{
   padding:10px 14px;
@@ -245,30 +323,32 @@ td select:focus{
   color:white;
   font-weight:bold;
 }
+
 .save{
-  background:#198754;
+  background:#3fad7a;
 }
+
 .add{
-  background:#007bff;
+  background:#5f95cf;
 }
+
 .delete{
   background:#dc3545;
 }
+.edit{
+    background: rgb(11 222 232 / 86%);
+}
 /* TOMBOL BAYAR 3D */
 .bayar-btn{
-  background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
-  box-shadow: 0 4px 0 #92400e, 0 5px 10px rgba(0,0,0,0.15);
-  transition: all 0.1s ease;
+  background: #f59e0b;
 }
+
 .bayar-btn:active{
   transform: translateY(2px);
   box-shadow: 0 2px 0 #92400e, 0 3px 6px rgba(0,0,0,0.15);
 }
-.toolbar{
-  margin-bottom:15px;
-  display:flex;
-  gap:10px;
-}
+
+
 /* IURAN BADGE */
 .kas{
   background:#dbeafe;
@@ -276,6 +356,7 @@ td select:focus{
   padding:4px 6px;
   border-radius:6px;
 }
+
 .ipl{
   background:#dff3e6;
   color:#1d4ed8;
@@ -300,30 +381,245 @@ td select:focus{
   padding:4px 6px;
   border-radius:6px;
 }
+
 .fasum{
   background:#f9fdb2;
   color:#1d4ed8;
   padding:4px 6px;
   border-radius:6px;
 }
+
 .kosong{
   color:#999;
 }
+
 .modal-actions{
   display:flex;
   gap:10px;
   margin-top:15px;
 }
+/* =========================
+   PRINT AREA
+========================= */
+
+#printArea{
+  background: #ffffff00;
+  padding: 20px;
+}
+
+.print-header{
+  display: none; /* default sembunyi di layar */
+  align-items:center;
+  gap:20px;
+  margin-bottom:20px;
+}
+@media print {
+  .print-header{
+    display: flex; /* muncul pas print */
+  }
+}
+
+#printArea h1{
+  margin:0;
+  font-size:30px;
+  font-weight:600;
+  letter-spacing:1px;
+  color:#111;
+}
+
+.print-title-wrap{
+  text-align:center;
+}
+
+.print-title-wrap p{
+  margin-top:10px;
+  color:#666;
+  font-size:18px;
+}
+
+.print-title-wrap .line{
+  width:100%;
+  height:2px;
+  background:#2d5a27;
+  margin-top:10px;
+  position:relative;
+}
+
+.print-title-wrap .line::after{
+  content:'◈';
+  position:absolute;
+  left:50%;
+  top:-12px;
+  transform:translateX(-50%);
+  background:white;
+  padding:0 10px;
+  color:#2d5a27;
+}
+
+#logoPrint{
+  width:90px;
+  height:90px;
+  object-fit:contain;
+}
+
+/* Supaya hasil PDF rapi */
+#printArea .card{
+  overflow:visible;
+  max-height:none;
+  box-shadow:none;
+  border:1px solid #e5e7eb;
+}
+
+#printArea table{
+  border-spacing:1;
+}
+/* Sembunyikan header print di layar biasa */
+.print-only {
+  display: none;
+}
+
+/* Style khusus saat print */
+@media print {
+  .print-only {
+    display: block;
+    position: absolute;
+    top: 15mm;
+    right: 15mm;
+    text-align: right;
+  }
+
+  /* Kasih jarak biar gak ketutup logo */
+  #printArea {
+    margin-top: 30mm;
+  }
+
+  /* Sembunyikan elemen lain saat print */
+  .toolbar, .modal-overlay, h2, .spinner-overlay {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+    padding: 0;
+  }
+
+  #printArea .card {
+    box-shadow: none;
+    border: none;
+    overflow: visible;
+    max-height: none;
+  }
+}
+
+/* Ukuran logo pas print */
+#logoPrint {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+}
+/* Watermark bayang di belakang */
+.watermarkp {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* biar di tengah */
+  opacity: 0.1; /* 0.05 - 0.1 biar samar, jangan 1 */
+  z-index: -1; /* di belakang konten */
+  pointer-events: none;
+}
+
+.watermarkp img {
+  width: 800px; /* gedein biar keliatan full page */
+  max-width: 80vw;
+}
+
+/* Logo pojok atas */
+.watermark {
+  position: fixed;
+  top: 0px;
+  right: 20px;
+  opacity: 1;
+  z-index: -1;
+  pointer-events: none;
+}
+.watermark img {
+  width: 100px;        /* gedein/kecilin sesuai selera */
+}
+
+/* Sembunyiin watermark pas print */
+@media print {
+  .watermark {
+    display: none;
+  }
+}
+.fab-container {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+}
+
+.fab-menu {
+  display: flex;
+  gap: 8px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transform: translateX(130%);
+  transition: transform 0.3s ease;
+  margin-right: 10px;
+}
+
+.fab-container.open .fab-menu {
+  transform: translateX(0);
+}
+
+.fab-logo {
+  cursor: pointer;
+  transition: transform 0.5s ease;
+}
+
+.fab-logo img {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+}
+
+.fab-container.open .fab-logo {
+  transform: translateX(-0px) rotateY(180deg);
+}
+
+@media print {
+  .fab-container {
+    display: none;
+  }
+}
 </style>
 </head>
+
 <body>
+<div class="watermarkp">
+  <img src="Elang1.png" alt="Watermarkp">
+</div>
+
+<div class="fab-container">
+  <div class="fab-menu">
+    <button class="btn add" onclick="openTambahModal()">➕ Tambah Data</button>
+    <button class="btn bayar-btn" onclick="openBayarModal()">💳 Bayar</button>
+    <button class="btn" style="background:#1f5f24;" onclick="exportExcel()">📊 Excel</button>
+    <button class="btn" style="background:#aab6cf;" onclick="exportToPDF()">📄 PDF</button>
+  </div>
+  
+  <div class="fab-logo" onclick="toggleMenu()">
+    <img src="Elang1.png" alt="Logo">
+  </div>
+</div>
 <div class="spinner-overlay" id="spinner">
   <div class="spinner"></div>
 </div>
-<div class="toolbar">
-<button class="btn add" onclick="tambahRow()">➕ Tambah Data</button>
-<button class="btn save" onclick="saveSemua()">💾 Simpan Semua</button>
-</div>
+
 <h2>📋 MASTER DATA WARGA</h2>
 <div class="card">
 <table id="tableWarga">
@@ -347,23 +643,54 @@ td select:focus{
 <tbody id="bodyWarga"></tbody>
 </table>
 </div>
+
 <h2>💰 REKAP IURAN</h2>
-<div class="card">
+<div id="printArea">
+  <div class="print-header">
+    <img id="logoPrint" src="Elang1.png" alt="Logo">
+    <div class="print-title-wrap">
+      <h1>REKAP IURAN GG ELANG 1</h1>
+      <p>Periode 24 Bulan</p>
+      <div class="line"></div>
+    </div>
+  </div>
+
+  <div class="card">
 <table id="tableIuran">
-<thead id="headerIuran"></thead>
-<tbody id="bodyIuran"></tbody>
+  <thead id="headerIuran"></thead>
+  <tbody id="bodyIuran"></tbody>
 </table>
+  </div>
 </div>
-<div class="toolbar" style="margin-top:15px; justify-content:flex-end;">
-  <button class="btn bayar-btn" onclick="openBayarModal()">💳Bayar Iuran</button></button>
-  <button class="btn" style="background:#107c41;" onclick="exportExcel()">📊</button>
-</div>
+
 <script>
 const apiURL = "https://script.google.com/macros/s/AKfycbzUdw6sOc74FdtSFxKOUA1Uu236TXdc_E_eelUaVIct6LErZAkGiY_0wUSchWyCkjYM/exec";
+const MASTER = {
+  jenisKelamin: ["Laki-laki", "Perempuan"],
+  
+  agama: ["Islam", "Kristen", "Katholik", "Hindu", "Buddha"],
+  
+  statusKeluarga: ["Kepala Keluarga", "Istri", "Anak", "Famili Lain"],
+  
+  pekerjaan: [
+    "Belum/Tidak Bekerja", "Ibu Rumah Tangga", "Pelajar/Mahasiswa", "Pensiunan",
+    "Karyawan Swasta", "Pegawai Negeri Sipil", "Pegawai Honorer", "Wiraswasta",
+    "Pedagang", "Petani/Pekebun", "Nelayan", "Buruh Harian Lepas", "Sopir",
+    "Guru", "Dokter", "Bidan", "Perawat", "TNI", "Polri", "Lainnya"
+  ],
+  statusHuni: ["huni", "belum huni"]
+};
+
 let rawData = [];
 let iuranData = [];
 const spinner = document.getElementById('spinner');
 const btnSave = document.querySelector('.btn.save');
+function buatOption(arr, selectedValue = "") {
+  return arr.map(val => 
+    `<option value="${val}" ${val === selectedValue ? "selected" : ""}>${val}</option>`
+  ).join("");
+}
+
 function formatDateForInput(date) {
   if (!date) return '';
   const d = new Date(date);
@@ -373,22 +700,33 @@ function formatDateForInput(date) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
 function formatRibu(num) {
   if (!num) return '';
   num = Number(num);
   if (num >= 1000) {
-    return (num / 1000) + 'K';
+    return (num / 1000).toFixed(0) + 'K';
   }
   return num.toString();
 }
+
 function showSpinner() {
   spinner.style.display = 'flex';
-  btnSave.disabled = true;
+  if(btnSave) btnSave.disabled = true;
 }
+
 function hideSpinner() {
   spinner.style.display = 'none';
-  btnSave.disabled = false;
+  if(btnSave) btnSave.disabled = false;
 }
+
+function escapeHtml(text){
+  return String(text)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;");
+}
+
 function loadData(){
 fetch(apiURL)
 .then(res => res.json())
@@ -406,6 +744,7 @@ fetch(apiURL)
     hideSpinner();
 });
 }
+
 function renderTableWarga(){
   let grouped = groupByKK(rawData);
   let html = "";
@@ -413,6 +752,7 @@ function renderTableWarga(){
     let anggota = grouped[kk];
     let kepala = anggota.find(a => String(a.status_keluarga || "").toLowerCase().includes("kepala")) || anggota[0];
     let jmlAnggota = anggota.length;
+
     html += `
     <tr class="kk-row" data-kk="${kk}">
       <td><button class="toggle-btn" onclick="toggleDetail('${kk}')">▶</button>${kk}</td>
@@ -423,173 +763,106 @@ function renderTableWarga(){
       <td>${jmlAnggota} orang</td>
     </tr>
     `;
+
     anggota.forEach((r, i) => {
       html += `
-      <tr class="detail-row detail-${kk}" data-kk="${kk}" style="display:none; background:#f9fafb">
+      <tr class="detail-row detail-${kk}" data-kk="${kk}" 
+	data-nik="${r.nik || ''}"
+	data-id="${r.id || ''}"
+	style="display:none; background:#f9fafb">
         <td style="padding-left:30px;">▶</td>
-        <td><input value="${r.nik || ''}"></td><td><input value="${r.nama || ''}"></td>
-        <td><select><option ${r.jenis_kelamin=="Laki-laki"?"selected":""}>Laki-laki</option><option ${r.jenis_kelamin=="Perempuan"?"selected":""}>Perempuan</option></select></td>
-        <td><input type="date" value="${formatDateForInput(r.tanggal_lahir)}"></td>
+        <td><input data-field="nik" value="${r.nik || ''}" disabled></td>
+        <td><input data-field="nama" value="${r.nama || ''}" disabled></td>
+
+        <td><select data-field="jenis_kelamin" disabled>${buatOption(MASTER.jenisKelamin, r.jenis_kelamin)}</select></td>
+        <td><input type="date" data-field="tanggal_lahir" value="${formatDateForInput(r.tanggal_lahir)}" disabled></td>
+
+        <td><select data-field="agama" disabled>${buatOption(MASTER.agama, r.agama)}</select></td>
+        <td><select data-field="status_keluarga" disabled>${buatOption(MASTER.statusKeluarga, r.status_keluarga)}</select></td>
+        <td><select data-field="pekerjaan" disabled>${buatOption(MASTER.pekerjaan, r.pekerjaan)}</select></td>
+
+        <td><input data-field="blok" value="${r.blok || ''}" disabled></td>
+        <td><input data-field="no_rumah" value="${r.no_rumah || ''}" disabled></td>
+
+        <td><select data-field="status_huni" disabled>${buatOption(MASTER.statusHuni, r.status_huni)}</select></td>
+        <td><input data-field="alamat" value="${r.alamat || ''}" disabled></td>
+
         <td>
-	<select>
-	<option ${r.agama=="Islam"?"selected":""}>Islam</option>
-	<option ${r.agama=="Kristen"?"selected":""}>Kristen</option>
-	<option ${r.agama=="Katholik"?"selected":""}>Katholik</option>
-	<option ${r.agama=="Hindu"?"selected":""}>Hindu</option>
-	<option ${r.agama=="Buddha"?"selected":""}>Buddha</option>
-	</select>
-	</td>
-        <td>
-	<select>
-	<option ${r.status_keluarga=="Kepala Keluarga"?"selected":""}>Kepala Keluarga</option>
-	<option ${r.status_keluarga=="Istri"?"selected":""}>Istri</option>
-	<option ${r.status_keluarga=="Anak"?"selected":""}>Anak</option>
-	<option ${r.status_keluarga=="Famili Lain"?"selected":""}>Famili Lain</option>
-	</select>
-	</td>
-        <td>
-	<select>
-	<option ${r.pekerjaan=="Belum/Tidak Bekerja"?"selected":""}>Belum/Tidak Bekerja</option>
-	<option ${r.pekerjaan=="Ibu Rumah Tangga"?"selected":""}>Ibu Rumah Tangga</option>
-	<option ${r.pekerjaan=="Pelajar/Mahasiswa"?"selected":""}>Pelajar/Mahasiswa</option>
-	<option ${r.pekerjaan=="Karyawan Swasta"?"selected":""}>Karyawan Swasta</option>
-	<option ${r.pekerjaan=="Pegawai Negeri Sipil"?"selected":""}>Pegawai Negeri Sipil</option>
-	<option ${r.pekerjaan=="Pegawai Honorer"?"selected":""}>Pegawai Honorer</option>
-	<option ${r.pekerjaan=="Wiraswasta"?"selected":""}>Wiraswasta</option>
-	<option ${r.pekerjaan=="Pedagang"?"selected":""}>Pedagang</option>
-	<option ${r.pekerjaan=="Petani/Pekebun"?"selected":""}>Petani/Pekebun</option>
-	<option ${r.pekerjaan=="Nelayan"?"selected":""}>Nelayan</option>
-	<option ${r.pekerjaan=="Buruh Harian Lepas"?"selected":""}>Buruh Harian Lepas</option>
-	<option ${r.pekerjaan=="Sopir"?"selected":""}>Sopir</option>
-	<option ${r.pekerjaan=="Guru"?"selected":""}>Guru</option>
-	<option ${r.pekerjaan=="Dokter"?"selected":""}>Dokter</option>
-	<option ${r.pekerjaan=="Bidan"?"selected":""}>Bidan</option>
-	<option ${r.pekerjaan=="Perawat"?"selected":""}>Perawat</option>
-	<option ${r.pekerjaan=="TNI"?"selected":""}>TNI</option>
-	<option ${r.pekerjaan=="Polri"?"selected":""}>Polri</option>
-	<option ${r.pekerjaan=="Lainnya"?"selected":""}>Lainnya</option>
-	</select>
-	</td>
-        <td><input value="${r.blok || ''}"></td><td><input value="${r.no_rumah || ''}"></td>
-        <td>
-	<select>
-	<option ${r.status_huni=="huni"?"selected":""}>huni</option>
-	<option ${r.status_huni=="belum huni"?"selected":""}>belum huni</option>
-	</select>
-	</td>
-        <td><input value="${r.alamat || ''}"></td>
-        <td><button class="btn delete" onclick="hapusRow(this)">🗑️</button></td>
+          <button class="btn edit" onclick="toggleEditRow(this)">✏️</button>
+          <button class="btn delete" onclick="hapusRow(this)">🗑️</button>
+        </td>
       </tr>
       `;
     });
   });
   document.getElementById("bodyWarga").innerHTML = html;
 }
-function tambahRow(){
-let html = `
-<tr data-kk="">
-<td><input placeholder="No KK"></td><td><input></td><td><input></td>
-<td><select><option>Laki-laki</option><option>Perempuan</option></select></td>
-<td><input type="date"></td>
-<td>
-<select>
-<option>Islam</option>
-<option>Kristen</option>
-<option>Katholik</option>
-<option>Hindu</option>
-<option>Buddha</option>
-</select>
-</td>
-<td>
-<select>
-<option>Kepala Keluarga</option>
-<option>Istri</option>
-<option>Anak</option>
-<option>Famili Lain</option>
-</select>
-</td>
-<td>
-<select>
-<option>Belum/Tidak Bekerja</option>
-<option>Ibu Rumah Tangga</option>
-<option>Pelajar/Mahasiswa</option>
-<option>Pensiunan</option>
-<option>Karyawan Swasta</option>
-<option>Pegawai Negeri Sipil</option>
-<option>Pegawai Honorer</option>
-<option>Wiraswasta</option>
-<option>Pedagang</option>
-<option>Petani/Pekebun</option>
-<option>Nelayan</option>
-<option>Buruh Harian Lepas</option>
-<option>Sopir</option>
-<option>Guru</option>
-<option>Dokter</option>
-<option>Bidan</option>
-<option>Perawat</option>
-<option>TNI</option>
-<option>Polri</option>
-<option>Lainnya</option>
-</select>
-</td>
-<td><input></td><td><input></td>
-<td>
-<select>
-<option>huni</option>
-<option>belum huni</option>
-</select>
-</td>
-<td><input></td>
-<td><button class="btn delete" onclick="hapusRow(this)">🗑️</button></td>
-</tr>
-`;
-document.getElementById("bodyWarga").insertAdjacentHTML("beforeend",html);
-}
+
 function hapusRow(btn){
 if(confirm("Hapus data ini?")){
 btn.parentElement.parentElement.remove();
 }
 }
-function saveSemua(){
-  let rows = document.querySelectorAll("#bodyWarga tr.detail-row, #bodyWarga tr:not(.kk-row):not(.detail-row)");
-  let data = [];
-  rows.forEach(r=>{
-    let x = r.querySelectorAll("input,select");
-    if(x.length === 0) return;
-    let noKK = r.dataset.kk || x[0].value;
-    data.push({
-      no_kk: noKK,
-      nik: x[r.dataset.kk? 0 : 1].value,
-      nama: x[r.dataset.kk? 1 : 2].value,
-      jenis_kelamin: x[r.dataset.kk? 2 : 3].value,
-      tanggal_lahir: x[r.dataset.kk? 3 : 4].value,
-      agama: x[r.dataset.kk? 4 : 5].value,
-      status_keluarga: x[r.dataset.kk? 5 : 6].value,
-      pekerjaan: x[r.dataset.kk? 6 : 7].value,
-      blok: x[r.dataset.kk? 7 : 8].value,
-      no_rumah: x[r.dataset.kk? 8 : 9].value,
-      status_huni: x[r.dataset.kk? 9 : 10].value,
-      alamat: x[r.dataset.kk? 10 : 11].value
-    });
+function toggleEditRow(btn){
+  let row = btn.closest('tr');
+  let inputs = row.querySelectorAll('input, select');
+  let isEditing = btn.textContent.includes('Edit');
+
+  if(isEditing){
+    // Masuk mode edit
+    inputs.forEach(el => el.disabled = false);
+    btn.textContent = '💾 Simpan';
+    btn.className = 'btn save';
+    btn.setAttribute('onclick', 'saveRow(this)');
+  } else {
+    // Keluar mode edit tanpa simpan
+    inputs.forEach(el => el.disabled = true);
+    btn.textContent = '✏️ Edit';
+    btn.className = 'btn edit';
+    btn.setAttribute('onclick', 'toggleEditRow(this)');
+  }
+}
+
+function saveRow(btn){
+  let row = btn.closest('tr');
+  let obj = {
+    no_kk: row.dataset.kk,
+    id: row.dataset.id, // TAMBAH INI
+    nik: row.dataset.nik // TAMBAH INI juga biar aman
+  };
+
+  row.querySelectorAll('input[data-field], select[data-field]').forEach(el => {
+    obj[el.dataset.field] = el.value;
   });
-showSpinner();
-fetch(apiURL,{
-  method:"POST",
-  headers:{"Content-Type":"text/plain;charset=utf-8"},
-  body:JSON.stringify({action:"saveMassal",data:data})
-})
+
+  if(!obj.nik){
+    alert("NIK wajib diisi!");
+    return;
+  }
+
+  showSpinner();
+  fetch(apiURL,{
+    method:"POST",
+    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body:JSON.stringify({action:"updateRow", data: obj})
+  })
 .then(res=>res.json())
 .then(res=>{
-  alert("Berhasil disimpan");
-  loadData();
-})
-.catch(err=>{
-  alert("Server error: " + err.message);
-})
-.finally(() => {
-    hideSpinner();
-});
+    if(res.status === "ok"){
+      alert("Berhasil diupdate");
+      row.querySelectorAll('input, select').forEach(el => el.disabled = true);
+      btn.textContent = '✏️';
+      btn.className = 'btn edit';
+      btn.setAttribute('onclick', 'toggleEditRow(this)');
+      loadData();
+    } else {
+      alert("Gagal: " + res.message);
+    }
+  })
+.catch(err=> alert("Error: " + err.message))
+.finally(() => hideSpinner());
 }
+
 function getPeriode24Bulan(){
 let tahun = new Date().getFullYear();
 let list = [];
@@ -598,6 +871,7 @@ let list = [];
 ["Jan","Feb","Mar","Apr","Mei","Jun"].forEach(b=>{list.push({bulan:b,tahun:tahun+1});});
 return list;
 }
+
 function groupByKK(data){
 let g = {};
 data.forEach(r=>{
@@ -606,6 +880,7 @@ g[r.no_kk].push(r);
 });
 return g;
 }
+
 function renderTableIuran(){
 let grouped = groupByKK(rawData);
 let bulanList = getPeriode24Bulan();
@@ -625,6 +900,7 @@ bulanList.forEach(b=>{
 });
 header += `</tr>`;
 document.getElementById("headerIuran").innerHTML = header;
+
 /* BODY */
 let body = "";
 Object.keys(grouped).forEach(kk=>{
@@ -652,7 +928,7 @@ bulanList.forEach(b=>{
   if(bayar){
     let nominal = formatRibu(bayar.nominal);
     if(String(bayar.jenis).toUpperCase() === "KAS"){
-      isi = `<span class="kas">☑ KAS - ${nominal}</span>`;
+      isi = `<span class="kas">KAS ${nominal}</span>`;
     }
     else if(String(bayar.jenis).toUpperCase() === "IPL"){
       let nominalNum = Number(bayar.nominal);
@@ -660,7 +936,7 @@ bulanList.forEach(b=>{
   
       if(nominalNum === 60000) classIPL = "ipl-nonis";
       else if(nominalNum === 50000) classIPL = "ipl-pengurus";
-      isi = `<span class="${classIPL}">☑ IPL - ${nominal}</span>`;
+      isi = `<span class="${classIPL}">IPL ${nominal}</span>`;
     }
   }
   body += `<td>${isi}</td>`;
@@ -669,7 +945,10 @@ body += `</tr>`;
 });
 document.getElementById("bodyIuran").innerHTML = body;
 }
+
+
 let sortState = { key: '', asc: true };
+
 function sortTableIuran(key){
   // Toggle arah kalau klik kolom yang sama
   if(sortState.key === key){
@@ -678,6 +957,7 @@ function sortTableIuran(key){
     sortState.key = key;
     sortState.asc = true;
   }
+
   let grouped = groupByKK(rawData);
   let arr = Object.keys(grouped).map(kk => {
     let anggota = grouped[kk];
@@ -691,15 +971,19 @@ function sortTableIuran(key){
       status_huni: first.status_huni || ''
     };
   });
+
   arr.sort((a,b) => {
     // Multi-level sort: Blok dulu, baru No Rumah
     let blokA = String(a.blok).toLowerCase();
     let blokB = String(b.blok).toLowerCase();
+
     if(blokA < blokB) return sortState.asc? -1 : 1;
     if(blokA > blokB) return sortState.asc? 1 : -1;
+
     // Kalau blok sama, urutin no_rumah
     if(a.no_rumah < b.no_rumah) return -1;
     if(a.no_rumah > b.no_rumah) return 1;
+
     // Kalau klik kolom lain, timpa sort sekundernya
     if(key!== 'blok' && key!== 'no_rumah'){
       let valA = String(a[key]).toLowerCase();
@@ -707,13 +991,17 @@ function sortTableIuran(key){
       if(valA < valB) return sortState.asc? -1 : 1;
       if(valA > valB) return sortState.asc? 1 : -1;
     }
+
     return 0;
   });
+
   renderTableIuranSorted(arr);
 }
+
 function renderTableIuranSorted(sortedArr){
   let bulanList = getPeriode24Bulan();
   let grouped = groupByKK(rawData);
+
   /* BODY */
   let body = "";
   sortedArr.forEach(item => {
@@ -722,8 +1010,10 @@ function renderTableIuranSorted(sortedArr){
     let first = anggota[0];
     let kepala = anggota.find(a=>String(a.status_keluarga || "").toLowerCase().includes("kepala"));
     let namaKK = kepala? kepala.nama : first.nama;
+
     body += `<tr><td>${first.blok || "-"}</td><td>${first.no_rumah || "-"}</td><td>${namaKK}</td>`;
     body += `<td>${first.status_huni || "-"}</td>`;
+
     // POS dan FASUM
     let bayarPos = iuranData.find(i => String(i.no_kk).trim()===kk && String(i.jenis).toUpperCase()==='POS');
     let bayarFasum = iuranData.find(i => String(i.no_kk).trim()===kk && String(i.jenis).toUpperCase()==='FASUM');
@@ -733,6 +1023,8 @@ function renderTableIuranSorted(sortedArr){
     body += bayarFasum
      ? `<td><span class="fasum">☑ FASUM - 100K</span></td>`
       : `<td><span class="kosong">⬜ FASUM</span></td>`;
+
+
     bulanList.forEach(b=>{
       let bayar = iuranData.find(i =>
         String(i.no_kk).trim() === String(kk).trim() &&
@@ -743,14 +1035,14 @@ function renderTableIuranSorted(sortedArr){
       if(bayar){
         let nominal = formatRibu(bayar.nominal);
         if(String(bayar.jenis).toUpperCase() === "KAS"){
-          isi = `<span class="kas">☑ KAS - ${nominal}</span>`;
+          isi = `<span class="kas">KAS ${nominal}</span>`;
         }
         else if(String(bayar.jenis).toUpperCase() === "IPL"){
           let nominalNum = Number(bayar.nominal);
           let classIPL = "ipl";
           if(nominalNum === 60000) classIPL = "ipl-nonis";
           else if(nominalNum === 50000) classIPL = "ipl-pengurus";
-          isi = `<span class="${classIPL}">☑ IPL - ${nominal}</span>`;
+          isi = `<span class="${classIPL}">IPL ${nominal}</span>`;
         }
       }
       body += `<td>${isi}</td>`;
@@ -759,11 +1051,14 @@ function renderTableIuranSorted(sortedArr){
   });
   document.getElementById("bodyIuran").innerHTML = body;
 }
+
 loadData();
+
 window.onload = () => {
   enableResize("tableWarga");
   enableResize("tableIuran");
 };
+	
 function enableResize(tableId){
   const table = document.getElementById(tableId);
   const cols = table.querySelectorAll("th");
@@ -788,14 +1083,16 @@ function enableResize(tableId){
     }
   });
 }
+
 function toggleDetail(kk){
   let rows = document.querySelectorAll(`.detail-${kk}`);
-  let btn = document.querySelector(`.kk-row[data-kk="${kk}"].toggle-btn`);
+  let btn = document.querySelector(`.kk-row[data-kk="${kk}"] .toggle-btn`);
   if(!rows.length) return;
   let isHidden = rows[0].style.display === "none";
   rows.forEach(r => r.style.display = isHidden? "table-row" : "none");
   if(btn) btn.textContent = isHidden? "▼" : "▶";
 }
+
 function openBayarModal(){
   document.getElementById('bayarModal').style.display = 'flex';
   let grouped = groupByKK(rawData);
@@ -820,6 +1117,7 @@ function openBayarModal(){
   }
   loadBulanBayar();
 }
+
 function closeBayarModal(){
   document.getElementById('bayarModal').style.display = 'none';
   document.getElementById('bulanContainer').innerHTML = '';
@@ -829,20 +1127,26 @@ function exportExcel(){
     alert('SheetJS belum load. Refresh halaman dulu.');
     return;
   }
+
   const table = document.getElementById("tableIuran");
   const wb = XLSX.utils.book_new();
   const ws = {};
+
   const rows = table.rows.length;
   const cols = table.rows[0].cells.length;
   const range = {s:{r:0,c:0}, e:{r:rows-1, c:cols-1}};
+
   for(let R = 0; R < rows; R++){
     for(let C = 0; C < cols; C++){
       const cellEl = table.rows[R].cells[C];
       const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
       const cellText = cellEl.innerText.trim();
+
       ws[cellAddress] = {v: cellText, t: "s"};
+
       const span = cellEl.querySelector('span');
       let bgColor = null;
+
       if(span){
         if(span.classList.contains('kas')) bgColor = 'DBEAFE';
         else if(span.classList.contains('ipl')) bgColor = 'DFF3E6';
@@ -850,6 +1154,7 @@ function exportExcel(){
         else if(span.classList.contains('ipl-pengurus')) bgColor = 'F5D1D1';
         else if(span.classList.contains('pos') || span.classList.contains('fasum')) bgColor = 'F9FDB2';
       }
+
       if(R === 0){
         ws[cellAddress].s = {
           fill: { fgColor: { rgb: 'F1F3F5' }, patternType: "solid" },
@@ -871,8 +1176,10 @@ function exportExcel(){
       }
     }
   }
+
   ws['!ref'] = XLSX.utils.encode_range(range);
   ws['!freeze'] = {ySplit: 1};
+
   // Auto width
   const colWidths = [];
   for(let C = 0; C < cols; C++){
@@ -886,15 +1193,78 @@ function exportExcel(){
     colWidths.push({wch: Math.min(maxLen + 2, 30)});
   }
   ws['!cols'] = colWidths;
+
   XLSX.utils.book_append_sheet(wb, ws, "Rekap Iuran");
   XLSX.writeFile(wb, "Rekap_Iuran.xlsx");
 }
+function cleanCellText(cell){
+  let txt = cell.textContent || '';
+
+  return txt
+    .replace(/☑/g, '✓')
+    .replace(/⬜/g, '')
+    .replace(/&/g, '')
+    .replace(/\+/g, '')
+    .replace(/\n/g, ' ')
+    .replace(/\r/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function exportToPDF(){
+  showSpinner();
+  try{
+    const element = document.getElementById('printArea');
+    const header = element.querySelector('.print-header');
+
+    // 1. Paksa header muncul sebelum capture
+    const oldDisplay = header.style.display;
+    header.style.display = 'flex';
+
+    // 2. Tunggu 50ms biar browser render dulu
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    const canvas = await html2canvas(element,{
+      scale: 3,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      allowTaint: true // penting kalau gambarnya dari file lokal
+    });
+
+    // 3. Balikin display header seperti semula
+    header.style.display = oldDisplay;
+
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const margin = 10;
+    const imgWidth = pdfWidth - (margin * 2);
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
+    pdf.save('Rekap_Iuran_GG_Elang_1.pdf');
+
+  }catch(err){
+    console.error(err);
+    alert('Gagal export PDF: ' + err.message);
+  }finally{
+    hideSpinner();
+  }
+}
+
 function loadBulanBayar(){
   let kk = document.getElementById('selectKK').value;
   let tahun = document.getElementById('selectTahun').value;
   let container = document.getElementById('bulanContainer');
   let bulanList = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
   let html = '<label>Pilih Bulan yang Dibayar:</label><div class="bulan-grid">';
+
   bulanList.forEach(bulan=>{
     // Cari status huni yang berlaku di bulan + tahun ini
     let anggotaKK = rawData.filter(r => String(r.no_kk).trim()===String(kk).trim());
@@ -903,6 +1273,7 @@ function loadBulanBayar(){
       // ambil status huni dari salah satu anggota, biasanya sama semua
       statusHuni = anggotaKK[0].status_huni || 'belum huni';
     }
+
     let jenisYangDicek = String(statusHuni).toLowerCase()==='huni'? 'IPL' : 'KAS';
 
     let bayar = iuranData.find(i=>
@@ -911,10 +1282,12 @@ function loadBulanBayar(){
       String(i.tahun).trim()===String(tahun).trim() &&
       String(i.jenis).toUpperCase()===jenisYangDicek
     );
+
     let sudahBayar =!!bayar;
     let checked = sudahBayar? 'checked' : '';
     let nominalVal = bayar? bayar.nominal : '';
     let labelText = sudahBayar? `Lunas - ${bulan} (${jenisYangDicek})` : `${bulan} (${jenisYangDicek})`;
+
     html += `
     <div class="bulan-item">
       <input type="checkbox" id="bulan_${bulan}" ${checked} ${sudahBayar? 'disabled' : ''}
@@ -926,8 +1299,10 @@ function loadBulanBayar(){
     </div>
     `;
   });
+
   html += '</div>';
   container.innerHTML = html;
+
 // Cek iuran sekali bayar
 let sudahBayarPos = iuranData.some(i =>
   String(i.no_kk).trim()===kk &&
@@ -939,6 +1314,7 @@ let sudahBayarFasum = iuranData.some(i =>
   String(i.jenis).toUpperCase()==='FASUM' &&
   String(i.bulan)==='FASUM'
 );
+
 document.getElementById('cekPos').checked = sudahBayarPos;
 document.getElementById('cekPos').disabled = sudahBayarPos;
 document.getElementById('labelPos').innerHTML = sudahBayarPos 
@@ -951,18 +1327,21 @@ document.getElementById('labelFasum').innerHTML = sudahBayarFasum
   ? 'Lunas Iuran Fasum<br><small>Rp 100.000</small>' 
   : 'Iuran Fasum<br><small>Rp 100.000</small>';
 }
+
 function toggleNominal(bulan){
   let cb = document.getElementById('bulan_' + bulan);
   let input = document.getElementById('nominal_' + bulan);
   input.disabled =!cb.checked;
   if(!cb.checked) input.value = '';
 }
+
 function simpanBayar(){
   let kk = document.getElementById('selectKK').value;
   let tahun = document.getElementById('selectTahun').value;
   let jenis = document.getElementById('selectJenis').value;
   let dataUpdate = [];
   let valid = true;
+
   document.querySelectorAll('#bulanContainer input[type=checkbox]').forEach(cb=>{
     if(cb.checked){
       let bulan = cb.dataset.bulan;
@@ -975,16 +1354,20 @@ function simpanBayar(){
       }
     }
   });
+
   if(document.getElementById('cekPos').checked){
     dataUpdate.push({no_kk: kk,bulan: 'POS',tahun: '',jenis: 'POS',nominal: 100000});
   }
+
   if(document.getElementById('cekFasum').checked){
     dataUpdate.push({no_kk: kk,bulan: 'FASUM',tahun: '',jenis: 'FASUM',nominal: 100000});
   }
-  if(!valid && dataUpdate.length===0){
+
+  if(!valid || dataUpdate.length===0){
     alert('Pilih minimal 1 iuran');
     return;
   }
+
   showSpinner();
   fetch(apiURL,{
     method:"POST",
@@ -1004,7 +1387,78 @@ function simpanBayar(){
     hideSpinner();
   });
 }
+
+function toggleMenu() {
+  document.querySelector('.fab-container').classList.toggle('open');
+}
+
+document.addEventListener('click', function(e) {
+  const fab = document.querySelector('.fab-container');
+  if (!fab.contains(e.target) && fab.classList.contains('open')) {
+    fab.classList.remove('open');
+  }
+});
+function openTambahModal(){
+  document.getElementById('tambahModal').style.display = 'flex';
+  
+  document.getElementById('t_jk').innerHTML = buatOption(MASTER.jenisKelamin);
+  document.getElementById('t_agama').innerHTML = buatOption(MASTER.agama);
+  document.getElementById('t_status').innerHTML = buatOption(MASTER.statusKeluarga);
+  document.getElementById('t_kerja').innerHTML = buatOption(MASTER.pekerjaan);
+  document.getElementById('t_huni').innerHTML = buatOption(MASTER.statusHuni);
+  
+  document.querySelectorAll('#tambahModal input').forEach(el => el.value = '');
+}
+
+function closeTambahModal(){
+  document.getElementById('tambahModal').style.display = 'none';
+}
+
+function simpanTambah(){
+  let data = [{
+    no_kk: document.getElementById('t_no_kk').value,
+    nik: document.getElementById('t_nik').value,
+    nama: document.getElementById('t_nama').value,
+    jenis_kelamin: document.getElementById('t_jk').value,
+    tanggal_lahir: document.getElementById('t_tgl').value,
+    agama: document.getElementById('t_agama').value,
+    status_keluarga: document.getElementById('t_status').value,
+    pekerjaan: document.getElementById('t_kerja').value,
+    blok: document.getElementById('t_blok').value,
+    no_rumah: document.getElementById('t_rumah').value,
+    status_huni: document.getElementById('t_huni').value,
+    alamat: document.getElementById('t_alamat').value
+  }];
+
+  if(!data[0].no_kk ||!data[0].nama){
+    alert('No KK dan Nama wajib diisi!');
+    return;
+  }
+
+  // langsung kirim ke server
+  showSpinner();
+  fetch(apiURL,{
+    method:"POST",
+    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body:JSON.stringify({action:"saveMassal",data:data})
+  })
+ .then(res=>res.json())
+ .then(res=>{
+    alert("Berhasil ditambahkan");
+    closeTambahModal();
+    loadData();
+  })
+ .catch(err=> alert("Server error: " + err.message))
+ .finally(() => hideSpinner());
+}
+
+// Tutup modal kalau klik di luar
+document.getElementById('tambahModal').addEventListener('click', function(e){
+  if(e.target === this) closeTambahModal();
+});
+
 </script>
+
 <div class="modal-overlay" id="bayarModal">
   <div class="modal">
     <h3>💳 Input Pembayaran Iuran</h3>
@@ -1013,6 +1467,7 @@ function simpanBayar(){
     <label>Tahun:</label>
     <select id="selectTahun" onchange="loadBulanBayar()"></select>
     <div id="bulanContainer"></div>
+
     <div style="margin-top:15px; padding-top:15px; border-top:1px solid #e5e7eb;">
       <label>Iuran Sekali Bayar:</label>
       <div style="display:flex; gap:15px; margin-top:8px;">
@@ -1026,16 +1481,66 @@ function simpanBayar(){
         </div>
       </div>
     </div>
+
     <label>Jenis Iuran Bulanan:</label>
     <select id="selectJenis">
       <option value="KAS">KAS</option>
       <option value="IPL">IPL</option>
     </select>
+
     <div class="modal-actions">
       <button class="btn save" onclick="simpanBayar()">Simpan</button>
       <button class="btn delete" onclick="closeBayarModal()">Batal</button>
     </div>
   </div>
 </div>
+
+<div class="modal-overlay" id="tambahModal">
+  <div class="modal">
+    <h3>➕ Tambah Data Warga</h3>
+
+    <label>No KK:</label>
+    <input type="text" id="t_no_kk">
+
+    <label>NIK:</label>
+    <input type="text" id="t_nik">
+
+    <label>Nama:</label>
+    <input type="text" id="t_nama">
+
+<label>Jenis Kelamin:</label>
+<select id="t_jk"></select>
+    <label>Tanggal Lahir:</label>
+    <input type="date" id="t_tgl">
+
+
+<label>Agama:</label>
+<select id="t_agama"></select>
+
+<label>Status Keluarga:</label>
+<select id="t_status"></select>
+
+<label>Pekerjaan:</label>
+<select id="t_kerja"></select>
+
+    <label>Blok:</label>
+    <input type="text" id="t_blok">
+
+    <label>No Rumah:</label>
+    <input type="text" id="t_rumah">
+
+<label>Status Huni:</label>
+<select id="t_huni"></select>
+
+    <label>Alamat:</label>
+    <input type="text" id="t_alamat">
+
+    <div class="modal-actions">
+      <button class="btn save" onclick="simpanTambah()">Simpan</button>
+      <button class="btn delete" onclick="closeTambahModal()">Batal</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
